@@ -441,7 +441,11 @@ export function createRenderer(canvas) {
     const viewW = cssW / scale
     size = {
       w: cssW, h: cssH, dpr, scale, viewW, viewH, fullH,
-      padY: (fullH - viewH) / 2,
+      // Cuando sobra hoja (el móvil de pie), el dibujo se sienta por encima
+      // del centro: centrado del todo cae justo a la altura de la mano y el
+      // suelo queda tapado por el pulgar. En horizontal no sobra nada, así que
+      // esto no cambia nada allí.
+      padY: (fullH - viewH) * 0.36,
       // En pantallas estrechas el corredor va mas a la izquierda para ganar
       // campo de vision por delante.
       playerX: Math.min(PLAYER_X, viewW * 0.17),
