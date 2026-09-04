@@ -30,6 +30,14 @@ const DEATH_TICKS = 6
 const HINT_PLAYS = 3
 const HINT_MS = 2600
 
+// El único texto del juego. Por defecto inglés, y español si el navegador lo
+// pide: cualquier otro idioma cae en inglés, que es lo que más gente entiende.
+const CREDIT = {
+  en: ['Made with ', ' by '],
+  es: ['Hecho con ', ' por '],
+}
+const SITE = 'https://lesteban.dev'
+
 // Cuaderno en reposo: el corredor trota en el sitio, sin mundo que avance y
 // sin la ceremonia de dibujar el nivel, que es cosa de la partida.
 function idleGame() {
@@ -50,6 +58,7 @@ export default function Home() {
   const [sfxOff, setSfxOff] = useState(false)
   const [musicOff, setMusicOff] = useState(false)
   const [showHints, setShowHints] = useState(false)
+  const [lang, setLang] = useState('en')
   const [startWorld, setStartWorld] = useState(1)
   const startWorldRef = useRef(1)
 
@@ -135,6 +144,15 @@ export default function Home() {
     try {
       window.localStorage.setItem(START_KEY, String(world))
     } catch {}
+  }, [])
+
+  useEffect(() => {
+    // Se decide en el cliente, no en el servidor: así el HTML que llega es
+    // siempre el mismo y no hay parpadeo al hidratar.
+    if (navigator.language?.toLowerCase().startsWith('es')) {
+      setLang('es')
+      document.documentElement.lang = 'es'
+    }
   }, [])
 
   useEffect(() => {
@@ -521,6 +539,22 @@ export default function Home() {
               </div>
             )}
         </div>
+        {/* Lo único escrito en todo el juego. Solo fuera de la carrera. */}
+        {phase !== 'playing' && (
+          <p className="credit">
+            {CREDIT[lang][0]}
+            <span className="heart">❤️</span>
+            {CREDIT[lang][1]}
+            <a
+              href={SITE}
+              target="_blank"
+              rel="noopener noreferrer"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              LEsteban.dev
+            </a>
+          </p>
+        )}
       </div>
 
       {upright && (
