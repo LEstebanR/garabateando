@@ -317,10 +317,6 @@ export function createAudio() {
       }
     },
 
-    page() {
-      burst({ from: 3000, to: 850, q: 0.8, dur: 0.3, gain: 0.16 })
-    },
-
     setPencil(on) {
       if (!ctx) return
       if (on && !pencil) pencil = loop({ freq: 1900, q: 2.4, gain: 0.05, wobble: 13 })

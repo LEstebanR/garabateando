@@ -232,7 +232,6 @@ export default function Home() {
             audio.crash()
             audio.duck(true)
           }
-          if (game.stage === 'flip' && before.stage !== 'flip') audio.page()
           audio.setPencil(game.stage === 'draw')
         }
         before.jumps = game.jumps
