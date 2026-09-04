@@ -317,17 +317,20 @@ export default function Home() {
         if (game.dead && phaseRef.current === 'playing') {
           setPhaseBoth('dead')
           setDeadSheets(game.sheets)
-          // La marca solo cuenta desde el principio: empezar en el mundo 4 no
-          // compite con haber llegado hasta el mundo 4.
-          if (startWorldRef.current === 1) {
-            setBest((current) => {
-              const next = Math.max(current, game.sheets)
-              try {
-                window.localStorage.setItem(BEST_KEY, String(next))
-              } catch {}
-              return next
-            })
-          }
+          // Se vuelve a empezar donde caíste, que es lo que se quiere el 90%
+          // de las veces. El selector sigue ahí para elegir otro.
+          chooseWorld(game.world)
+          // La marca cuenta empiece donde empiece. Las hojas miden tiempo
+          // desde cero en cada partida, así que arrancar en un mundo avanzado
+          // no infla nada: al contrario, se pierden las hojas de los mundos
+          // que uno se salta. Empezar desde el principio siempre da más.
+          setBest((current) => {
+            const next = Math.max(current, game.sheets)
+            try {
+              window.localStorage.setItem(BEST_KEY, String(next))
+            } catch {}
+            return next
+          })
         }
       }
 
@@ -348,7 +351,7 @@ export default function Home() {
       observer.disconnect()
       window.clearTimeout(hintTimer.current)
     }
-  }, [nudgeThumb, setPhaseBoth])
+  }, [chooseWorld, nudgeThumb, setPhaseBoth])
 
   useEffect(() => {
     if (hudBest.current) hudBest.current.textContent = String(best).padStart(4, '0')

@@ -231,28 +231,29 @@ body {
 .credit {
   position: absolute;
   left: 50%;
-  bottom: 6px;
+  bottom: clamp(6px, 1.4vh, 16px);
   z-index: 40;
   margin: 0;
   transform: translateX(-50%);
-  font-size: 10px;
-  letter-spacing: .06em;
+  /* En una pantalla grande, diez píxeles fijos se pierden: crece con ella. */
+  font-size: clamp(10px, 1vw, 15px);
+  letter-spacing: .07em;
   white-space: nowrap;
-  color: #a8a29a;
+  color: #8d867b;
   /* Solo el enlace recoge el toque; el resto deja pasar. */
   pointer-events: none;
 }
 
 .credit .heart {
-  font-size: 11px;
-  vertical-align: -1px;
+  font-size: 1.15em;
+  vertical-align: -2px;
 }
 
 .credit a {
   pointer-events: auto;
-  color: #6d675e;
+  color: #4c473f;
   text-decoration: none;
-  border-bottom: 1px solid #d5d1c8;
+  border-bottom: 1px solid #b9b3a8;
   padding-bottom: 1px;
 }
 .credit a:hover {
