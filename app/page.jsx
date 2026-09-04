@@ -61,6 +61,7 @@ export default function Home() {
   const stageRef2 = useRef('draw')
   const boilRef = useRef(BOIL)
   const uprightRef = useRef(false)
+  const fullscreenTried = useRef(false)
   const audioRef = useRef(null)
   const beforeRef = useRef({ jumps: 0, onGround: true, dead: false, crouching: false, stage: 'draw' })
 
@@ -71,9 +72,32 @@ export default function Home() {
     setPhase(next)
   }, [])
 
+  // La barra del navegador se come una franja que en horizontal es justo la
+  // que falta. Solo puede pedirse desde un gesto del usuario, así que va aquí
+  // y se intenta una sola vez: si alguien la cierra a propósito, se respeta.
+  const goFullscreen = useCallback(() => {
+    if (fullscreenTried.current) return
+    fullscreenTried.current = true
+    if (!window.matchMedia?.('(pointer: coarse)').matches) return
+    const root = document.documentElement
+    const request = root.requestFullscreen || root.webkitRequestFullscreen
+    try {
+      if (request && !document.fullscreenElement) {
+        const result = request.call(root)
+        if (result?.catch) result.catch(() => {})
+      }
+      // En Android se puede fijar el horizontal; en iOS no existe y no pasa nada.
+      const lock = window.screen?.orientation?.lock
+      if (lock) {
+        const locked = lock.call(window.screen.orientation, 'landscape')
+        if (locked?.catch) locked.catch(() => {})
+      }
+    } catch {}
+  }, [])
+
   const press = useCallback(() => {
     audioRef.current?.unlock()
-    audioRef.current?.duck(false)
+    goFullscreen()
     if (phaseRef.current === 'playing') {
       inputRef.current.jump = true
       return
@@ -81,7 +105,7 @@ export default function Home() {
     gameRef.current = createGame(undefined, startWorldRef.current)
     inputRef.current = { jump: false, crouch: false }
     setPhaseBoth('playing')
-  }, [setPhaseBoth])
+  }, [setPhaseBoth, goFullscreen])
 
   const chooseWorld = useCallback((world) => {
     startWorldRef.current = world
@@ -224,14 +248,14 @@ export default function Home() {
         // Suena lo que ha cambiado respecto a la hoja anterior.
         const audio = audioRef.current
         const before = beforeRef.current
+        // La canción acompaña la carrera: en los menús, con el teléfono de pie
+        // o con el cuaderno cerrado, se retira.
+        audio?.setMusic(phaseRef.current === 'playing' && !game.dead && !uprightRef.current)
         if (audio && phaseRef.current === 'playing') {
           if (game.jumps > before.jumps) audio.jump()
           else if (game.onGround && !before.onGround) audio.land()
           if (game.crouching && !before.crouching) audio.crouch()
-          if (game.dead && !before.dead) {
-            audio.crash()
-            audio.duck(true)
-          }
+          if (game.dead && !before.dead) audio.crash()
           audio.setPencil(game.stage === 'draw')
         }
         before.jumps = game.jumps

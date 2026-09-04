@@ -17,13 +17,25 @@ body {
   color: var(--ink);
   font-family: 'DM Mono', monospace;
   overscroll-behavior: none;
+  /* Nada de esto es texto para leer, sino un juego: mantener pulsado tiene que
+     agachar al muñeco, no seleccionar media página ni abrir el menú de copiar. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* El cuaderno ocupa la pantalla. Sin columna de texto: lo que hay que saber
    lo dice el propio juego. */
 .desk {
   height: 100dvh;
-  padding: clamp(6px, 1.1vw, 20px);
+  /* Con el móvil en horizontal, la muesca y la barra de gestos se comen un
+     lado de la pantalla: el cuaderno se aparta de ellas. */
+  padding:
+    max(clamp(6px, 1.1vw, 20px), env(safe-area-inset-top))
+    max(clamp(6px, 1.1vw, 20px), env(safe-area-inset-right))
+    max(clamp(6px, 1.1vw, 20px), env(safe-area-inset-bottom))
+    max(clamp(6px, 1.1vw, 20px), env(safe-area-inset-left));
   display: flex;
 }
 
@@ -234,7 +246,11 @@ body {
 }
 
 @media (max-width: 860px), (pointer: coarse) {
-  .desk { padding: 0; }
+  .desk {
+    padding:
+      env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
   .paper { border: none; box-shadow: none; padding: 10px 12px 8px; }
 
   .thumb { top: -16px; right: -22px; width: clamp(100px, 26vw, 150px); }
@@ -250,6 +266,9 @@ body {
   .touch-pad button {
     display: grid;
     place-items: center;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     width: 62px;
     height: 62px;
     background: rgba(252, 251, 248, .9);

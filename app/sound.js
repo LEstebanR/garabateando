@@ -13,31 +13,37 @@
 const SFX_KEY = 'salta-paginas:mute'
 const MUSIC_KEY = 'salta-paginas:music'
 
-const BPM = 72
+// Jazz de escobillas. Tiene groove pero no empuja: acordes con séptima, que
+// es lo que suena elegante en vez de infantil, y un ii-V-I que no para de
+// moverse. Las escobillas son ruido filtrado, igual que el papel, así que la
+// percusión sale del mismo material que todo lo demás.
+const BPM = 108
 const STEP = 60 / BPM / 2 // corchea
+const SWING = 0.17 // las corcheas débiles llegan tarde: eso es el balanceo
 const STEPS = 32 // cuatro compases
 
 const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12)
 
-// I - vi - IV - V, un compás cada uno.
+// I - vi - ii - V con séptimas. El bajo camina en negras en vez de plantarse
+// en la raíz, que es lo que hace que la progresión tire hacia delante.
 const CHORDS = [
-  { bass: 48, notes: [60, 64, 67] },
-  { bass: 45, notes: [57, 60, 64] },
-  { bass: 41, notes: [53, 57, 60] },
-  { bass: 43, notes: [55, 59, 62] },
+  { walk: [48, 55, 52, 59], notes: [64, 67, 71] },
+  { walk: [45, 52, 48, 55], notes: [60, 64, 67] },
+  { walk: [50, 57, 53, 60], notes: [65, 69, 72] },
+  { walk: [43, 50, 47, 53], notes: [59, 62, 65] },
 ]
 
-// Dos frases que se turnan, con mucho silencio entre notas: el aire es lo que
-// separa una canción relajante de una cancioncilla machacona.
+// Dos vueltas que se turnan. Frases sincopadas, con las notas cayendo entre
+// tiempos: es de donde sale el gancho.
 const PHRASES = [
-  [76, null, 79, null, 81, null, null, null,
-   79, null, 76, null, 74, null, null, null,
-   72, null, 76, null, 79, null, null, null,
-   74, null, 71, null, 72, null, null, null],
-  [84, null, null, 81, null, 79, null, null,
-   76, null, 79, null, null, null, null, null,
-   72, null, 74, null, 76, null, null, null,
-   79, null, 74, null, null, null, null, null],
+  [76, null, 79, 81, null, 79, 76, null,
+   74, null, 76, null, 72, 74, null, null,
+   77, null, 74, 72, null, 74, 77, null,
+   79, 77, null, 74, null, 71, 72, null],
+  [83, null, 81, 79, null, 76, null, 79,
+   81, null, null, 79, 76, null, 74, null,
+   72, 74, 77, null, 81, null, 79, null,
+   77, null, 74, 71, null, null, 72, null],
 ]
 
 export function createAudio() {
@@ -54,6 +60,8 @@ export function createAudio() {
   let round = 0
   let sfxOff = false
   let musicOff = false
+  // La música solo acompaña la carrera: en los menús no suena.
+  let wantMusic = false
   const last = {}
 
   try {
@@ -99,7 +107,7 @@ export function createAudio() {
     reverb.connect(wet).connect(master)
 
     musicMute = ctx.createGain()
-    musicMute.gain.value = musicOff ? 0 : 1
+    musicMute.gain.value = 0
     musicMute.connect(master)
     musicMute.connect(reverb)
 
@@ -143,23 +151,64 @@ export function createAudio() {
     osc.stop(at + dur + 0.05)
   }
 
+  // Escobilla: un roce corto y agudo. Lo mismo que suena el papel, más arriba.
+  function brush(at, gain, freq = 6800, dur = 0.05) {
+    const src = ctx.createBufferSource()
+    src.buffer = noise
+    src.loop = true
+    src.playbackRate.value = 0.9 + Math.random() * 0.25
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.value = freq
+    filter.Q.value = 1.1
+    const env = ctx.createGain()
+    env.gain.setValueAtTime(0.0001, at)
+    env.gain.exponentialRampToValueAtTime(gain, at + 0.004)
+    env.gain.exponentialRampToValueAtTime(0.0001, at + dur)
+    src.connect(filter).connect(env).connect(musicBus)
+    src.start(at)
+    src.stop(at + dur + 0.02)
+  }
+
+  // Bombo sordo, el que marca dónde está el pulso sin hacerse notar.
+  function kick(at, gain = 0.16) {
+    const osc = ctx.createOscillator()
+    osc.frequency.setValueAtTime(115, at)
+    osc.frequency.exponentialRampToValueAtTime(46, at + 0.11)
+    const env = ctx.createGain()
+    env.gain.setValueAtTime(gain, at)
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.16)
+    osc.connect(env).connect(musicBus)
+    osc.start(at)
+    osc.stop(at + 0.2)
+  }
+
   function schedule() {
     if (!ctx) return
     while (nextTime < ctx.currentTime + 0.25) {
       const bar = Math.floor(step / 8)
+      const beat = step % 8
       const chord = CHORDS[bar]
+      // Las corcheas débiles se retrasan: sin esto es una caja de ritmos.
+      const at = nextTime + (beat % 2 === 1 ? STEP * SWING : 0)
 
-      if (step % 8 === 0) {
-        tone(chord.bass, nextTime, 2.6, 0.16, 'sine', 900)
-        // El acorde entra en tres voces muy suaves, casi un fondo.
-        chord.notes.forEach((n, i) => tone(n, nextTime + i * 0.05, 3.1, 0.045, 'triangle', 1500))
+      // Bajo caminando, una negra por tiempo.
+      if (beat % 2 === 0) tone(chord.walk[beat / 2], at, 0.62, 0.15, 'sine', 800)
+
+      // El acorde entra a contratiempo, no en el golpe: ahí está el aire.
+      if (beat === 2 || beat === 6) {
+        chord.notes.forEach((n, i) => tone(n, at + i * 0.012, 0.5, 0.05, 'triangle', 2200))
       }
 
-      const phrase = PHRASES[round % 4 === 2 ? 1 : 0]
+      // Escobillas en todas las corcheas, con acento en 1 y 3.
+      brush(at, beat % 4 === 0 ? 0.05 : 0.022)
+      if (beat === 0 || beat === 4) kick(at)
+      if (beat === 2 || beat === 6) brush(at, 0.035, 3200, 0.03)
+
+      const phrase = PHRASES[round % 2]
       let note = phrase[step]
-      // Una vuelta de cada cuatro sube una octava: cambia sin salirse.
       if (note && round % 4 === 3) note += 12
-      if (note) tone(note, nextTime, 1.9, 0.1, 'triangle', 3200)
+      if (note) tone(note, at, 0.55, 0.11, 'triangle', 3400)
 
       nextTime += STEP
       step += 1
@@ -175,6 +224,28 @@ export function createAudio() {
     nextTime = ctx.currentTime + 0.1
     step = 0
     timer = window.setInterval(schedule, 40)
+  }
+
+  // Suena si el juego la pide y nadie la ha apagado. Entra y sale con un
+  // fundido: cortarla en seco al morir se notaria mas que la propia muerte.
+  function applyMusic(fadeTime = 0.5) {
+    if (!ctx || !musicMute) return
+    const on = wantMusic && !musicOff
+    const now = ctx.currentTime
+    musicMute.gain.cancelScheduledValues(now)
+    musicMute.gain.setValueAtTime(musicMute.gain.value, now)
+    musicMute.gain.linearRampToValueAtTime(on ? 1 : 0, now + fadeTime)
+    if (on) {
+      startMusic()
+      return
+    }
+    // Cuando termina el fundido se deja de programar: no tiene sentido gastar
+    // en notas que nadie va a oir.
+    window.setTimeout(() => {
+      if (wantMusic && !musicOff) return
+      window.clearInterval(timer)
+      timer = 0
+    }, fadeTime * 1000 + 120)
   }
 
   // Un golpe de ruido filtrado: la base de todos los sonidos de papel.
@@ -242,7 +313,7 @@ export function createAudio() {
       const c = build()
       if (!c) return
       if (c.state === 'suspended') c.resume()
-      if (!musicOff) startMusic()
+      applyMusic(0.3)
     },
 
     get sfxOff() {
@@ -265,20 +336,16 @@ export function createAudio() {
 
     toggleMusic() {
       musicOff = !musicOff
-      if (ctx && musicMute) {
-        musicMute.gain.cancelScheduledValues(ctx.currentTime)
-        musicMute.gain.linearRampToValueAtTime(musicOff ? 0 : 1, ctx.currentTime + 0.25)
-      }
-      // Con la música apagada no se programan notas: no tiene sentido gastar
-      // en algo que nadie va a oír.
-      if (musicOff) {
-        window.clearInterval(timer)
-        timer = 0
-      } else {
-        startMusic()
-      }
+      applyMusic(0.25)
       save(MUSIC_KEY, musicOff)
       return musicOff
+    },
+
+    // La pide el juego al arrancar una partida y la retira en los menús.
+    setMusic(on) {
+      if (on === wantMusic) return
+      wantMusic = on
+      applyMusic()
     },
 
     // Despegue: el roce sube de tono al separarse del papel.
@@ -321,16 +388,6 @@ export function createAudio() {
       if (!ctx) return
       if (on && !pencil) pencil = loop({ freq: 1900, q: 2.4, gain: 0.05, wobble: 13 })
       if (pencil) fade(pencil, on ? pencil.gain : 0, on ? 0.08 : 0.2)
-    },
-
-    // Con el cuaderno cerrado la música se retira a un segundo plano en vez
-    // de cortarse en seco.
-    duck(on) {
-      if (!ctx || !musicBus) return
-      const now = ctx.currentTime
-      musicBus.gain.cancelScheduledValues(now)
-      musicBus.gain.setValueAtTime(musicBus.gain.value, now)
-      musicBus.gain.linearRampToValueAtTime(on ? 0.2 : 0.5, now + 0.5)
     },
 
     stopLoops() {
