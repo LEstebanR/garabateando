@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createGame, step, TICK_MS, worldProgress } from './engine'
 import { createRenderer, setBoil } from './draw'
 import { PencilSvg, ThumbSvg } from './hand'
-import { CrashIcon, DuckHint, JumpHint, KeyIcon, RotateIcon, SheetIcon, StackIcon, StarIcon } from './icons'
+import { CrashIcon, DuckHint, JumpHint, KeyIcon, RotateIcon, SheetIcon, SoundIcon, StackIcon, StarIcon } from './icons'
+import { createAudio } from './sound'
 
 const BEST_KEY = 'salta-paginas:best'
 const UNLOCKED_KEY = 'salta-paginas:unlocked'
@@ -39,6 +40,7 @@ export default function Home() {
   const [unlocked, setUnlocked] = useState(1)
   const [deadSheets, setDeadSheets] = useState(0)
   const [upright, setUpright] = useState(false)
+  const [muted, setMuted] = useState(false)
   const [startWorld, setStartWorld] = useState(1)
   const startWorldRef = useRef(1)
 
@@ -58,6 +60,8 @@ export default function Home() {
   const stageRef2 = useRef('draw')
   const boilRef = useRef(BOIL)
   const uprightRef = useRef(false)
+  const audioRef = useRef(null)
+  const beforeRef = useRef({ jumps: 0, onGround: true, dead: false, stage: 'draw' })
 
   if (!gameRef.current) gameRef.current = idleGame()
 
@@ -67,6 +71,7 @@ export default function Home() {
   }, [])
 
   const press = useCallback(() => {
+    audioRef.current?.unlock()
     if (phaseRef.current === 'playing') {
       inputRef.current.jump = true
       return
@@ -82,6 +87,19 @@ export default function Home() {
     try {
       window.localStorage.setItem(START_KEY, String(world))
     } catch {}
+  }, [])
+
+  useEffect(() => {
+    audioRef.current = createAudio()
+    setMuted(audioRef.current.muted)
+    return () => audioRef.current?.stopLoops()
+  }, [])
+
+  const toggleMute = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    audio.unlock()
+    setMuted(audio.toggleMute())
   }, [])
 
   useEffect(() => {
@@ -160,6 +178,7 @@ export default function Home() {
       // exactamente donde se estaba, en vez de haber muerto sin verlo.
       if (uprightRef.current) {
         acc = 0
+        audioRef.current?.stopLoops()
         return
       }
 
@@ -169,6 +188,7 @@ export default function Home() {
         // ultima imagen y para todo el movimiento, que es lo que descansa la vista.
         if (gameRef.current.dead && gameRef.current.deadTick >= DEATH_TICKS) {
           acc = 0
+          audioRef.current?.stopLoops()
           break
         }
         acc -= TICK_MS
@@ -190,6 +210,22 @@ export default function Home() {
 
         if (game.stage === 'flip' && stageRef2.current !== 'flip') nudgeThumb()
         stageRef2.current = game.stage
+
+        // Suena lo que ha cambiado respecto a la hoja anterior.
+        const audio = audioRef.current
+        const before = beforeRef.current
+        if (audio && phaseRef.current === 'playing') {
+          if (game.jumps > before.jumps) audio.jump()
+          else if (game.onGround && !before.onGround) audio.land()
+          if (game.dead && !before.dead) audio.crash()
+          if (game.stage === 'flip' && before.stage !== 'flip') audio.page()
+          audio.setPencil(game.stage === 'draw')
+          audio.setRunning(game.stage === 'run' && !game.dead, game.speed)
+        }
+        before.jumps = game.jumps
+        before.onGround = game.onGround
+        before.dead = game.dead
+        before.stage = game.stage
 
         if (game.dead && phaseRef.current === 'playing') {
           setPhaseBoth('dead')
@@ -299,6 +335,9 @@ export default function Home() {
     <main className="desk">
       <div className="paper">
         <header className="hud">
+          <button className="mute" type="button" onClick={toggleMute} aria-pressed={muted}>
+            <SoundIcon on={!muted} />
+          </button>
           <div className="hud-cell">
             <StackIcon />
             <strong ref={hudWorld}>01</strong>

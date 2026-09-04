@@ -105,3 +105,23 @@ export function RotateIcon({ size = 96 }) {
     </svg>
   )
 }
+
+// Altavoz con y sin ondas: el único ajuste del juego.
+export function SoundIcon({ on = true, size = 20 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <path d="M4 9 h4 l5 -4.5 v15 L8 15 H4 Z" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinejoin="round" />
+      {on ? (
+        <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M16.5 9.2 C17.8 10.6 17.8 13.4 16.5 14.8" />
+          <path d="M19.4 6.6 C21.9 9.2 21.9 14.8 19.4 17.4" />
+        </g>
+      ) : (
+        <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5" />
+        </g>
+      )}
+    </svg>
+  )
+}

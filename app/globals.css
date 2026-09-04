@@ -49,6 +49,17 @@ body {
   font: 700 clamp(19px, 2vw, 26px)/1 Kalam, cursive;
   letter-spacing: .01em;
 }
+.mute {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: #b3ada4;
+  cursor: pointer;
+}
+.mute:hover { color: var(--ink); }
+
 .hud-cell {
   display: flex;
   align-items: center;

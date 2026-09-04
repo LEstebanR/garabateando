@@ -25,10 +25,15 @@ export const JUMP_PEAK = (JUMP_V * JUMP_V) / (2 * GRAVITY)
 // habia que adivinar donde caeria el cambio para reservarle el hueco, y como
 // la velocidad sube por el camino la prediccion se desviaba cientos de
 // unidades: el claro quedaba en otro sitio y la hoja tapaba obstaculos reales.
-// Un mundo dura un minuto de folioscopio. Se mide en hojas y no en distancia
-// recorrida porque la transicion detiene la partida y regenera el terreno: ya
-// no hay que adivinar en que punto del mapa caera el cambio.
-export const WORLD_SHEETS = FPS * 60
+// Los mundos crecen con lo que tienen dentro. El primero solo sabe de cajas y
+// con un minuto entero se hacia eterno; el quinto tiene cinco elementos
+// combinandose y aguanta el doble sin repetirse. Se mide en hojas y no en
+// distancia porque la transicion detiene la partida y regenera el terreno.
+const WORLD_BASE = 9
+const WORLD_STEP = 8
+const WORLD_MAX = 46
+export const secondsForWorld = (world) => Math.min(WORLD_MAX, WORLD_BASE + world * WORLD_STEP)
+export const sheetsForWorld = (world) => Math.round(FPS * secondsForWorld(world))
 
 // Cada mundo empieza con su terreno dibujado a mano delante de ti. La partida
 // se detiene mientras dura: pasar de un cuaderno al siguiente no es inmediato.
@@ -318,7 +323,7 @@ export function step(state, input = {}) {
   state.coyote = state.onGround ? 2 : Math.max(0, state.coyote - 1)
 
   // Fin del mundo: se pasa la hoja y arranca el siguiente.
-  if (!state.dead && state.worldSheets >= WORLD_SHEETS) {
+  if (!state.dead && state.worldSheets >= sheetsForWorld(state.world)) {
     state.stage = 'flip'
     state.stageTick = FLIP_TICKS
   }
@@ -331,4 +336,4 @@ export function step(state, input = {}) {
   return state
 }
 
-export const worldProgress = (state) => Math.min(1, state.worldSheets / WORLD_SHEETS)
+export const worldProgress = (state) => Math.min(1, state.worldSheets / sheetsForWorld(state.world))
