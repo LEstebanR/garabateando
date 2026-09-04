@@ -131,13 +131,22 @@ body {
 
 .thumb svg, .pencil svg { display: block; }
 
-.message {
+.overlay {
   position: absolute;
-  left: 50%;
-  top: 30%;
-  z-index: 6;
-  padding: clamp(16px, 2vw, 26px) clamp(20px, 3vw, 40px);
-  transform: translateX(-50%);
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  /* La capa deja pasar los toques; solo los botones los recogen. Así tocar
+     fuera del menú sigue arrancando la partida. */
+  pointer-events: none;
+}
+
+.message {
+  max-height: 100%;
+  overflow-y: auto;
+  padding: clamp(12px, 2vw, 26px) clamp(16px, 3vw, 40px);
   text-align: center;
   background: rgba(252, 251, 248, .94);
   border: 1px solid var(--ink);
@@ -187,9 +196,11 @@ body {
 }
 
 .world-pick {
-  margin-top: 18px;
-  padding-top: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px dashed #d5d1c8;
+  /* Lo único del menú que sí recoge toques. */
+  pointer-events: auto;
 }
 .world-pick-row {
   display: flex;
@@ -200,7 +211,8 @@ body {
   gap: 6px;
 }
 .world-pick-row button {
-  min-width: 38px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 6px 9px 5px;
   background: transparent;
   border: 1px solid #cfcabf;
@@ -252,6 +264,18 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .rotate-gate svg { animation: none; }
+}
+
+/* Con poca altura (un móvil en horizontal) el menú se compacta para que el
+   selector de mundo quepa entero en vez de quedarse a medias. */
+@media (max-height: 460px) {
+  .message b { font-size: clamp(22px, 5vh, 34px); }
+  .message > svg { width: 38px; height: 38px; }
+  .tally { margin-top: 8px; font-size: clamp(17px, 4.4vh, 24px); }
+  .press { margin-top: 10px; }
+  .press svg { width: 30px; height: 30px; }
+  .hint svg { max-height: 46px; }
+  .world-pick { margin-top: 10px; padding-top: 9px; }
 }
 
 @media (pointer: coarse) {

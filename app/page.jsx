@@ -245,18 +245,27 @@ export default function Home() {
         if (game.stage === 'flip' && stageRef2.current !== 'flip') nudgeThumb()
         stageRef2.current = game.stage
 
-        // Suena lo que ha cambiado respecto a la hoja anterior.
+        // Suena lo que ha cambiado respecto a la hoja anterior, y solo
+        // mientras se corre: en los menús el cuaderno está callado.
         const audio = audioRef.current
         const before = beforeRef.current
-        // La canción acompaña la carrera: en los menús, con el teléfono de pie
-        // o con el cuaderno cerrado, se retira.
-        audio?.setMusic(phaseRef.current === 'playing' && !game.dead && !uprightRef.current)
-        if (audio && phaseRef.current === 'playing') {
-          if (game.jumps > before.jumps) audio.jump()
-          else if (game.onGround && !before.onGround) audio.land()
-          if (game.crouching && !before.crouching) audio.crouch()
+        const jugando = phaseRef.current === 'playing' && !game.dead && !uprightRef.current
+
+        if (audio) {
+          audio.setMusic(jugando)
+          if (jugando) {
+            if (game.jumps > before.jumps) audio.jump()
+            else if (game.onGround && !before.onGround) audio.land()
+            if (game.crouching && !before.crouching) audio.crouch()
+            audio.setPencil(game.stage === 'draw')
+          } else {
+            // El lápiz se apaga en cuanto se sale de la carrera, sin esperar a
+            // que termine la caída: si no, seguía rascando sobre el menú.
+            audio.stopLoops()
+          }
+          // El golpe sí suena aunque ya no se esté jugando: es lo que cuenta
+          // que se ha acabado.
           if (game.dead && !before.dead) audio.crash()
-          audio.setPencil(game.stage === 'draw')
         }
         before.jumps = game.jumps
         before.onGround = game.onGround
@@ -436,37 +445,43 @@ export default function Home() {
             <ThumbSvg />
           </div>
 
-          {phase === 'idle' && (
-            <div className="message start">
-              <div className="hint-row">
-                <div className="hint">
-                  <KeyIcon dir="up" />
-                  <JumpHint />
+        </div>
+
+        {/* Los menús viven fuera del área de juego, que recorta lo que se sale.
+            La capa no captura toques: solo sus botones lo hacen, así que tocar
+            en cualquier otro sitio sigue arrancando la partida. */}
+        <div className="overlay">
+            {phase === 'idle' && (
+              <div className="message start">
+                <div className="hint-row">
+                  <div className="hint">
+                    <KeyIcon dir="up" />
+                    <JumpHint />
+                  </div>
+                  <div className="hint">
+                    <KeyIcon dir="down" />
+                    <DuckHint />
+                  </div>
                 </div>
-                <div className="hint">
-                  <KeyIcon dir="down" />
-                  <DuckHint />
+                <div className="press">
+                  <KeyIcon dir="up" size={38} />
                 </div>
+                {picker}
               </div>
-              <div className="press">
-                <KeyIcon dir="up" size={38} />
+            )}
+            {phase === 'dead' && (
+              <div className="message result">
+                <CrashIcon />
+                <div className="tally">
+                  <span><SheetIcon size={16} />{String(deadSheets).padStart(4, '0')}</span>
+                  <span className="hud-dim"><StarIcon size={16} />{String(best).padStart(4, '0')}</span>
+                </div>
+                <div className="press">
+                  <KeyIcon dir="up" size={38} />
+                </div>
+                {picker}
               </div>
-              {picker}
-            </div>
-          )}
-          {phase === 'dead' && (
-            <div className="message result">
-              <CrashIcon />
-              <div className="tally">
-                <span><SheetIcon size={16} />{String(deadSheets).padStart(4, '0')}</span>
-                <span className="hud-dim"><StarIcon size={16} />{String(best).padStart(4, '0')}</span>
-              </div>
-              <div className="press">
-                <KeyIcon dir="up" size={38} />
-              </div>
-              {picker}
-            </div>
-          )}
+            )}
         </div>
       </div>
 
