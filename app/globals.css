@@ -1,0 +1,252 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Kalam:wght@400;700&display=swap');
+
+:root {
+  --ink: #232323;
+  --paper: #fcfbf8;
+  --soft: #8d867b;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #e7e5e1;
+  color: var(--ink);
+  font-family: 'DM Mono', monospace;
+  overscroll-behavior: none;
+}
+
+/* El cuaderno ocupa la pantalla. Sin columna de texto: lo que hay que saber
+   lo dice el propio juego. */
+.desk {
+  height: 100dvh;
+  padding: clamp(6px, 1.1vw, 20px);
+  display: flex;
+}
+
+.paper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: clamp(8px, 1vw, 15px) clamp(10px, 1.2vw, 20px) clamp(6px, .8vw, 12px);
+  background: var(--paper);
+  border: 1px solid #c9c6bf;
+  box-shadow: 6px 8px 0 rgba(48, 43, 35, .07);
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 30px);
+  font-size: 10px;
+}
+.hud strong {
+  font: 700 clamp(19px, 2vw, 26px)/1 Kalam, cursive;
+  letter-spacing: .01em;
+}
+.hud-cell {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  color: var(--ink);
+}
+.hud-dim { color: #a8a29a; }
+.hud-dim strong { font-weight: 400; }
+.hud-right { margin-left: auto; text-align: right; }
+.hud-right + .hud-right { margin-left: clamp(12px, 2vw, 26px); }
+
+.progress { flex: 1; height: 3px; background: #e4e2dd; overflow: hidden; }
+.progress span { display: block; width: 0; height: 100%; background: #333; }
+
+.game-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin-top: clamp(6px, .9vw, 12px);
+  overflow: hidden;
+  cursor: pointer;
+  perspective: 1000px;
+  touch-action: manipulation;
+}
+
+.sheet-canvas { display: block; }
+
+/* La mano de quien sostiene el cuaderno y la que lo dibuja. Ninguna de las dos
+   es parte del dibujo, así que van sobre las hojas y sin trazo de lápiz. */
+.thumb {
+  position: absolute;
+  top: -22px;
+  right: -30px;
+  z-index: 9;
+  width: clamp(120px, 15vw, 210px);
+  pointer-events: none;
+  transform: rotate(-15deg);
+  transform-origin: 80% 0%;
+  filter: drop-shadow(0 10px 16px rgba(58, 42, 32, .26));
+}
+
+.pencil {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 8;
+  opacity: 0;
+  pointer-events: none;
+  /* El origen es la punta del grafito dentro del SVG. */
+  transform-origin: 46.7% 0.8%;
+  transition: transform 72ms linear, opacity 120ms ease;
+  filter: drop-shadow(0 8px 14px rgba(58, 42, 32, .22));
+}
+
+.thumb svg, .pencil svg { display: block; }
+
+.message {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  z-index: 6;
+  padding: clamp(16px, 2vw, 26px) clamp(20px, 3vw, 40px);
+  transform: translateX(-50%);
+  text-align: center;
+  background: rgba(252, 251, 248, .94);
+  border: 1px solid var(--ink);
+  box-shadow: 5px 5px 0 rgba(34, 34, 34, .1);
+}
+
+/* Cómo se juega, dibujado: una tecla y lo que hace. */
+.hint-row {
+  display: flex;
+  gap: clamp(18px, 3vw, 36px);
+  justify-content: center;
+  color: var(--ink);
+}
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hint svg { display: block; }
+
+.press {
+  margin-top: 18px;
+  color: var(--ink);
+  animation: press 1.15s ease-in-out infinite;
+}
+.press svg { display: block; margin: 0 auto; }
+
+@keyframes press {
+  0%, 100% { transform: translateY(0); opacity: .9; }
+  50% { transform: translateY(4px); opacity: .45; }
+}
+
+.result { color: var(--ink); }
+.result > svg { display: block; margin: 0 auto; }
+
+.tally {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin-top: 14px;
+  font: 700 clamp(22px, 2.8vw, 30px)/1 Kalam, cursive;
+}
+.tally span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.world-pick {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed #d5d1c8;
+}
+.world-pick-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a09a90;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.world-pick-row button {
+  min-width: 38px;
+  padding: 6px 9px 5px;
+  background: transparent;
+  border: 1px solid #cfcabf;
+  color: #7d776d;
+  font: 700 16px/1 Kalam, cursive;
+  cursor: pointer;
+}
+.world-pick-row button:hover { border-color: var(--ink); color: var(--ink); }
+.world-pick-row button.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.touch-pad { display: none; }
+
+/* Puerta de orientación: tapa el juego entero mientras el teléfono esté de pie. */
+.rotate-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  color: var(--ink);
+}
+.rotate-gate svg {
+  width: min(46vw, 220px);
+  animation: tip 2.4s ease-in-out infinite;
+}
+
+@keyframes tip {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  75%, 92% { transform: rotate(-90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-gate svg { animation: none; }
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .touch-pad { display: none !important; }
+}
+
+@media (max-width: 860px), (pointer: coarse) {
+  .desk { padding: 0; }
+  .paper { border: none; box-shadow: none; padding: 10px 12px 8px; }
+
+  .thumb { top: -16px; right: -22px; width: clamp(100px, 26vw, 150px); }
+
+  .touch-pad {
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
+    z-index: 20;
+    display: flex;
+    gap: 10px;
+  }
+  .touch-pad button {
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    background: rgba(252, 251, 248, .9);
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    touch-action: none;
+  }
+}
+
+/* Si el sistema pide menos movimiento, el pulgar tampoco se mueve. */
+@media (prefers-reduced-motion: reduce) {
+  .press { animation: none; }
+}
