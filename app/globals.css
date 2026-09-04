@@ -4,6 +4,8 @@
   --ink: #232323;
   --paper: #fcfbf8;
   --soft: #8d867b;
+  /* Margen mínimo del cuaderno contra el borde de la pantalla. */
+  --edge: clamp(6px, 1.1vw, 20px);
 }
 
 * { box-sizing: border-box; }
@@ -28,15 +30,22 @@ body {
 /* El cuaderno ocupa la pantalla. Sin columna de texto: lo que hay que saber
    lo dice el propio juego. */
 .desk {
-  height: 100dvh;
-  /* Con el móvil en horizontal, la muesca y la barra de gestos se comen un
-     lado de la pantalla: el cuaderno se aparta de ellas. */
-  padding:
-    max(clamp(6px, 1.1vw, 20px), env(safe-area-inset-top))
-    max(clamp(6px, 1.1vw, 20px), env(safe-area-inset-right))
-    max(clamp(6px, 1.1vw, 20px), env(safe-area-inset-bottom))
-    max(clamp(6px, 1.1vw, 20px), env(safe-area-inset-left));
+  /* Fijo al viewport en vez de medir alturas: en los navegadores de iPhone las
+     unidades de altura bailan con la barra de direcciones, y esto ocupa
+     siempre exactamente lo que se ve. */
+  position: fixed;
+  inset: 0;
   display: flex;
+
+  /* La muesca de la cámara se come una franja lateral cuando el móvil está en
+     horizontal. El max() es lo importante: env() vale cero en los lados sin
+     muesca y en los aparatos que no la reportan, así que sin él el cuaderno se
+     quedaría pegado al borde. */
+  padding:
+    max(var(--edge), env(safe-area-inset-top))
+    max(var(--edge), env(safe-area-inset-right))
+    max(var(--edge), env(safe-area-inset-bottom))
+    max(var(--edge), env(safe-area-inset-left));
 }
 
 .paper {
@@ -45,6 +54,10 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  /* Lo que asoma por los bordes (el pulgar) se recorta contra el cuaderno en
+     vez de salirse de la pantalla y esconderse bajo la muesca. */
+  overflow: hidden;
   padding: clamp(8px, 1vw, 15px) clamp(10px, 1.2vw, 20px) clamp(6px, .8vw, 12px);
   background: var(--paper);
   border: 1px solid #c9c6bf;
@@ -106,8 +119,8 @@ body {
    es parte del dibujo, así que van sobre las hojas y sin trazo de lápiz. */
 .thumb {
   position: absolute;
-  top: -22px;
-  right: -30px;
+  top: -18px;
+  right: -10px;
   z-index: 9;
   width: clamp(120px, 15vw, 210px);
   pointer-events: none;
@@ -358,17 +371,15 @@ body {
 }
 
 @media (max-width: 860px), (pointer: coarse) {
-  .desk {
-    padding:
-      env(safe-area-inset-top) env(safe-area-inset-right)
-      env(safe-area-inset-bottom) env(safe-area-inset-left);
-  }
+  /* El cuaderno se acerca al borde, pero nunca por debajo de la muesca. */
+  :root { --edge: 4px; }
+
   .paper {
     border: none;
     box-shadow: none;
     padding: 10px 12px 8px;
   }
-  .thumb { top: -16px; right: -22px; width: clamp(100px, 26vw, 150px); }
+  .thumb { top: -14px; right: -8px; width: clamp(100px, 26vw, 150px); }
 }
 
 /* Si el sistema pide menos movimiento, el pulgar tampoco se mueve. */
