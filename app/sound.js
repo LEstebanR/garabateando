@@ -278,34 +278,51 @@ export function createAudio() {
     src.stop(now + dur + 0.02)
   }
 
+  // Un bucle con la ganancia temblando: el roce sostenido del lápiz. Sin ese
+  // temblor suena a estática de radio.
+  //
+  // El temblor y el volumen van en dos nodos distintos a propósito. Cuando se
+  // conecta una señal a un parámetro, Web Audio la SUMA a su valor: con el LFO
+  // colgado del mismo mando que usa el fundido, bajar el volumen a cero no
+  // callaba nada, porque el temblor seguía aportando lo suyo. El lápiz se
+  // quedaba rascando de fondo desde la primera vez que dibujaba un mundo,
+  // menús incluidos. El mando de volumen tiene que estar libre de moduladores.
   function loop({ freq, q, gain, wobble }) {
     if (!ctx) return null
     const src = ctx.createBufferSource()
     src.buffer = noise
     src.loop = true
+
     const filter = ctx.createBiquadFilter()
     filter.type = 'bandpass'
     filter.frequency.value = freq
     filter.Q.value = q
-    const level = ctx.createGain()
-    level.gain.value = 0
+
+    // Tiembla alrededor de un valor medio, nunca por debajo de cero.
+    const shimmer = ctx.createGain()
+    shimmer.gain.value = 0.62
     const lfo = ctx.createOscillator()
     lfo.frequency.value = wobble
     const lfoGain = ctx.createGain()
-    lfoGain.gain.value = gain * 0.6
-    lfo.connect(lfoGain).connect(level.gain)
-    src.connect(filter).connect(level).connect(sfxBus)
+    lfoGain.gain.value = 0.34
+    lfo.connect(lfoGain).connect(shimmer.gain)
+
+    // El mando limpio: multiplica todo lo anterior, así que a cero es silencio.
+    const out = ctx.createGain()
+    out.gain.value = 0
+
+    src.connect(filter).connect(shimmer).connect(out).connect(sfxBus)
     src.start()
     lfo.start()
-    return { level, gain }
+    return { out, gain }
   }
 
   function fade(node, to, time = 0.12) {
     if (!node || !ctx) return
     const now = ctx.currentTime
-    node.level.gain.cancelScheduledValues(now)
-    node.level.gain.setValueAtTime(node.level.gain.value, now)
-    node.level.gain.linearRampToValueAtTime(to, now + time)
+    node.out.gain.cancelScheduledValues(now)
+    node.out.gain.setValueAtTime(node.out.gain.value, now)
+    node.out.gain.linearRampToValueAtTime(to, now + time)
   }
 
   return {
