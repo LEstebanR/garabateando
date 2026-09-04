@@ -59,6 +59,8 @@ body {
   cursor: pointer;
 }
 .mute:hover { color: var(--ink); }
+.mute + .mute { margin-left: -4px; }
+.mute[aria-pressed='true'] { color: #cfcabf; }
 
 .hud-cell {
   display: flex;

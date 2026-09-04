@@ -125,3 +125,19 @@ export function SoundIcon({ on = true, size = 20 }) {
     </svg>
   )
 }
+
+// Nota musical: el interruptor de la canción, aparte del de los roces.
+export function MusicIcon({ on = true, size = 20 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">
+      <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+        <path d="M10 17.5 V5 L20 3 V15.5" />
+        <ellipse cx="7.4" cy="17.6" rx="3" ry="2.6" />
+        <ellipse cx="17.4" cy="15.6" rx="3" ry="2.6" />
+      </g>
+      {!on && (
+        <path d="M3 21 L21 3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      )}
+    </svg>
+  )
+}

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createGame, step, TICK_MS, worldProgress } from './engine'
 import { createRenderer, setBoil } from './draw'
 import { PencilSvg, ThumbSvg } from './hand'
-import { CrashIcon, DuckHint, JumpHint, KeyIcon, RotateIcon, SheetIcon, SoundIcon, StackIcon, StarIcon } from './icons'
+import { CrashIcon, DuckHint, JumpHint, KeyIcon, RotateIcon, MusicIcon, SheetIcon, SoundIcon, StackIcon, StarIcon } from './icons'
 import { createAudio } from './sound'
 
 const BEST_KEY = 'salta-paginas:best'
@@ -40,7 +40,8 @@ export default function Home() {
   const [unlocked, setUnlocked] = useState(1)
   const [deadSheets, setDeadSheets] = useState(0)
   const [upright, setUpright] = useState(false)
-  const [muted, setMuted] = useState(false)
+  const [sfxOff, setSfxOff] = useState(false)
+  const [musicOff, setMusicOff] = useState(false)
   const [startWorld, setStartWorld] = useState(1)
   const startWorldRef = useRef(1)
 
@@ -61,7 +62,7 @@ export default function Home() {
   const boilRef = useRef(BOIL)
   const uprightRef = useRef(false)
   const audioRef = useRef(null)
-  const beforeRef = useRef({ jumps: 0, onGround: true, dead: false, stage: 'draw' })
+  const beforeRef = useRef({ jumps: 0, onGround: true, dead: false, crouching: false, stage: 'draw' })
 
   if (!gameRef.current) gameRef.current = idleGame()
 
@@ -72,6 +73,7 @@ export default function Home() {
 
   const press = useCallback(() => {
     audioRef.current?.unlock()
+    audioRef.current?.duck(false)
     if (phaseRef.current === 'playing') {
       inputRef.current.jump = true
       return
@@ -91,15 +93,23 @@ export default function Home() {
 
   useEffect(() => {
     audioRef.current = createAudio()
-    setMuted(audioRef.current.muted)
-    return () => audioRef.current?.stopLoops()
+    setSfxOff(audioRef.current.sfxOff)
+    setMusicOff(audioRef.current.musicOff)
+    return () => audioRef.current?.dispose()
   }, [])
 
-  const toggleMute = useCallback(() => {
+  const toggleSfx = useCallback(() => {
     const audio = audioRef.current
     if (!audio) return
     audio.unlock()
-    setMuted(audio.toggleMute())
+    setSfxOff(audio.toggleSfx())
+  }, [])
+
+  const toggleMusic = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio) return
+    audio.unlock()
+    setMusicOff(audio.toggleMusic())
   }, [])
 
   useEffect(() => {
@@ -217,14 +227,18 @@ export default function Home() {
         if (audio && phaseRef.current === 'playing') {
           if (game.jumps > before.jumps) audio.jump()
           else if (game.onGround && !before.onGround) audio.land()
-          if (game.dead && !before.dead) audio.crash()
+          if (game.crouching && !before.crouching) audio.crouch()
+          if (game.dead && !before.dead) {
+            audio.crash()
+            audio.duck(true)
+          }
           if (game.stage === 'flip' && before.stage !== 'flip') audio.page()
           audio.setPencil(game.stage === 'draw')
-          audio.setRunning(game.stage === 'run' && !game.dead, game.speed)
         }
         before.jumps = game.jumps
         before.onGround = game.onGround
         before.dead = game.dead
+        before.crouching = game.crouching
         before.stage = game.stage
 
         if (game.dead && phaseRef.current === 'playing') {
@@ -335,8 +349,11 @@ export default function Home() {
     <main className="desk">
       <div className="paper">
         <header className="hud">
-          <button className="mute" type="button" onClick={toggleMute} aria-pressed={muted}>
-            <SoundIcon on={!muted} />
+          <button className="mute" type="button" onClick={toggleMusic} aria-pressed={musicOff}>
+            <MusicIcon on={!musicOff} />
+          </button>
+          <button className="mute" type="button" onClick={toggleSfx} aria-pressed={sfxOff}>
+            <SoundIcon on={!sfxOff} />
           </button>
           <div className="hud-cell">
             <StackIcon />
