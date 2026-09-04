@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createGame, step, TICK_MS, worldProgress } from './engine'
 import { createRenderer, setBoil } from './draw'
 import { PencilSvg, ThumbSvg } from './hand'
-import { CrashIcon, DuckHint, JumpHint, KeyIcon, RotateIcon, MusicIcon, SheetIcon, SoundIcon, StackIcon, StarIcon } from './icons'
+import { CrashIcon, DuckHint, JumpHint, KeyIcon, PortraitPlayIcon, RotateIcon, MusicIcon, SheetIcon, SoundIcon, StackIcon, StarIcon } from './icons'
 import { createAudio } from './sound'
 
 const BEST_KEY = 'salta-paginas:best'
@@ -29,6 +29,15 @@ const DEATH_TICKS = 6
 // nada jugable y desaparece justo cuando el mundo está listo.
 const HINT_PLAYS = 3
 const HINT_MS = 2600
+
+// Navegadores metidos dentro de otra app. Están clavados en vertical, así que
+// pedirles que giren el teléfono es pedir algo que no pueden hacer: el juego
+// se abre directamente de pie.
+const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|FBIOS|Twitter|Line\/|KAKAOTALK|Snapchat|Pinterest|LinkedInApp|MicroMessenger|TikTok|GSA\//i
+const PORTRAIT_KEY = 'salta-paginas:portrait'
+// Si a los tres segundos y medio sigue de pie, puede que ese navegador tampoco
+// gire aunque no lo hayamos reconocido. Se ofrece la salida igualmente.
+const ESCAPE_MS = 3500
 
 // El único texto del juego. Por defecto inglés, y español si el navegador lo
 // pide: cualquier otro idioma cae en inglés, que es lo que más gente entiende.
@@ -55,6 +64,7 @@ export default function Home() {
   const [unlocked, setUnlocked] = useState(1)
   const [deadSheets, setDeadSheets] = useState(0)
   const [upright, setUpright] = useState(false)
+  const [offerPortrait, setOfferPortrait] = useState(false)
   const [sfxOff, setSfxOff] = useState(false)
   const [musicOff, setMusicOff] = useState(false)
   const [showHints, setShowHints] = useState(false)
@@ -78,6 +88,8 @@ export default function Home() {
   const stageRef2 = useRef('draw')
   const boilRef = useRef(BOIL)
   const uprightRef = useRef(false)
+  const allowPortrait = useRef(false)
+  const escapeTimer = useRef(0)
   const fullscreenTried = useRef(false)
   const playsRef = useRef(0)
   const hintTimer = useRef(0)
@@ -357,23 +369,47 @@ export default function Home() {
     if (hudBest.current) hudBest.current.textContent = String(best).padStart(4, '0')
   }, [best])
 
-  // En vertical, un teléfono deja ver tan poco mundo por delante que no da
-  // tiempo a reaccionar. En vez de encoger el juego, se pide girarlo.
+  // En vertical se ve bastante menos mundo por delante, así que se pide girar
+  // el teléfono. Pero girar no siempre es posible, y quedarse con el cartel
+  // para siempre es peor que jugar apretado.
   useEffect(() => {
     const query = window.matchMedia?.('(orientation: portrait) and (pointer: coarse)')
     if (!query) return
+
+    try {
+      if (window.sessionStorage.getItem(PORTRAIT_KEY) === '1') allowPortrait.current = true
+    } catch {}
+    if (IN_APP.test(navigator.userAgent)) allowPortrait.current = true
+
     const apply = () => {
-      uprightRef.current = query.matches
-      setUpright(query.matches)
+      const blocked = query.matches && !allowPortrait.current
+      uprightRef.current = blocked
+      setUpright(blocked)
+      window.clearTimeout(escapeTimer.current)
+      if (blocked) {
+        escapeTimer.current = window.setTimeout(() => setOfferPortrait(true), ESCAPE_MS)
+      } else {
+        setOfferPortrait(false)
+      }
     }
     apply()
     query.addEventListener('change', apply)
-    return () => query.removeEventListener('change', apply)
+    return () => {
+      query.removeEventListener('change', apply)
+      window.clearTimeout(escapeTimer.current)
+    }
   }, [])
 
-  useEffect(() => {
-    unlockedRef.current = unlocked
-  }, [unlocked])
+  // Jugar de pie a pesar de todo.
+  const playUpright = useCallback(() => {
+    allowPortrait.current = true
+    uprightRef.current = false
+    setUpright(false)
+    setOfferPortrait(false)
+    try {
+      window.sessionStorage.setItem(PORTRAIT_KEY, '1')
+    } catch {}
+  }, [])
 
   useEffect(() => {
     const down = (event) => {
@@ -563,6 +599,11 @@ export default function Home() {
       {upright && (
         <div className="rotate-gate">
           <RotateIcon />
+          {offerPortrait && (
+            <button className="gate-escape" type="button" onClick={playUpright}>
+              <PortraitPlayIcon />
+            </button>
+          )}
         </div>
       )}
 

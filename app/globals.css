@@ -330,14 +330,35 @@ body {
   position: fixed;
   inset: 0;
   z-index: 50;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: var(--paper);
   color: var(--ink);
 }
-.rotate-gate svg {
+.rotate-gate > svg {
   width: min(46vw, 220px);
   animation: tip 2.4s ease-in-out infinite;
+}
+
+/* La salida para quien no puede girar: aparece a los segundos, discreta,
+   para que girar siga siendo lo primero que se intenta. */
+.gate-escape {
+  margin-top: 26px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid #cfcabf;
+  color: #7d776d;
+  cursor: pointer;
+  animation: fadeIn .5s ease both;
+}
+.gate-escape:hover, .gate-escape:active { border-color: var(--ink); color: var(--ink); }
+.gate-escape svg { display: block; width: min(20vw, 84px); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes tip {

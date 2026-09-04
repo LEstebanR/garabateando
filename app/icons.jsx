@@ -141,3 +141,23 @@ export function MusicIcon({ on = true, size = 20 }) {
     </svg>
   )
 }
+
+// Jugar con el teléfono de pie: la tira de juego dentro de la pantalla
+// vertical. Solo aparece cuando girar no es una opción.
+export function PortraitPlayIcon({ size = 84 }) {
+  return (
+    <svg viewBox="0 0 80 96" width={size} aria-hidden="true">
+      <g stroke="currentColor" fill="none" strokeWidth="3" strokeLinejoin="round">
+        <rect x="17" y="6" width="46" height="84" rx="7" />
+      </g>
+      {/* la banda donde cabe el juego */}
+      <rect x="17" y="36" width="46" height="26" fill="currentColor" opacity=".12" />
+      <g stroke="currentColor" fill="none" strokeWidth="2.2" strokeLinecap="round">
+        <path d="M22 56 H58" />
+        <circle cx="34" cy="45" r="3" />
+        <path d="M34 48 v5 M34 50 l-4 3 M34 50 l4 2 M34 53 l-3 3 M34 53 l3 3" />
+        <rect x="46" y="49" width="7" height="7" strokeWidth="2" />
+      </g>
+    </svg>
+  )
+}
