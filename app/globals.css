@@ -215,7 +215,20 @@ body {
   color: var(--paper);
 }
 
-.touch-pad { display: none; }
+/* Mitades táctiles. En escritorio no existen: ahí manda el teclado. */
+.zones {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: none;
+}
+.zone {
+  flex: 1;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 
 /* Puerta de orientación: tapa el juego entero mientras el teléfono esté de pie. */
 .rotate-gate {
@@ -241,8 +254,13 @@ body {
   .rotate-gate svg { animation: none; }
 }
 
-@media (orientation: portrait) and (pointer: coarse) {
-  .touch-pad { display: none !important; }
+@media (pointer: coarse) {
+  .zones { display: flex; }
+
+  /* En táctil no hay teclas que enseñar, y cada ayuda se pone en la mitad de
+     pantalla que le corresponde: agacharse a la izquierda, saltar a la derecha. */
+  .hint-row { flex-direction: row-reverse; }
+  .hint > svg:first-child { display: none; }
 }
 
 @media (max-width: 860px), (pointer: coarse) {
@@ -251,31 +269,12 @@ body {
       env(safe-area-inset-top) env(safe-area-inset-right)
       env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  .paper { border: none; box-shadow: none; padding: 10px 12px 8px; }
-
+  .paper {
+    border: none;
+    box-shadow: none;
+    padding: 10px 12px 8px;
+  }
   .thumb { top: -16px; right: -22px; width: clamp(100px, 26vw, 150px); }
-
-  .touch-pad {
-    position: fixed;
-    right: 14px;
-    bottom: 14px;
-    z-index: 20;
-    display: flex;
-    gap: 10px;
-  }
-  .touch-pad button {
-    display: grid;
-    place-items: center;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    width: 62px;
-    height: 62px;
-    background: rgba(252, 251, 248, .9);
-    border: 1.5px solid var(--ink);
-    color: var(--ink);
-    touch-action: none;
-  }
 }
 
 /* Si el sistema pide menos movimiento, el pulgar tampoco se mueve. */

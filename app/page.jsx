@@ -363,9 +363,24 @@ export default function Home() {
     </div>
   )
 
-  const holdCrouch = (value) => (event) => {
+  // En una pantalla táctil no hay teclas: manda la mitad que se toca. Saltar
+  // cae en la derecha por ser lo que más se hace y el pulgar dominante.
+  const touchJump = (event) => {
     event.preventDefault()
-    inputRef.current.crouch = value
+    event.stopPropagation()
+    press()
+  }
+
+  const touchCrouch = (down) => (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    // Fuera de la carrera, cualquier mitad arranca la partida: quedarse
+    // tocando un lado sin que pase nada no lo entiende nadie.
+    if (phaseRef.current !== 'playing') {
+      if (down) press()
+      return
+    }
+    inputRef.current.crouch = down
   }
 
   return (
@@ -400,6 +415,20 @@ export default function Home() {
           {/* El pulgar no es parte del dibujo: es de quien sostiene el
               cuaderno. Por eso va sobre las hojas, no tiembla con el trazo y
               se mueve con soltura mientras el dibujo avanza a saltos. */}
+          {/* Mitad izquierda: agacharse mientras se mantenga. Mitad derecha:
+              saltar. Van bajo los mensajes, así que el selector de mundo y el
+              resto de botones siguen siendo pulsables. */}
+          <div className="zones" aria-hidden="true">
+            <div
+              className="zone"
+              onPointerDown={touchCrouch(true)}
+              onPointerUp={touchCrouch(false)}
+              onPointerCancel={touchCrouch(false)}
+              onPointerLeave={touchCrouch(false)}
+            />
+            <div className="zone" onPointerDown={touchJump} />
+          </div>
+
           <div className="pencil" ref={pencilRef} aria-hidden="true">
             <PencilSvg />
           </div>
@@ -447,14 +476,6 @@ export default function Home() {
         </div>
       )}
 
-      <div className="touch-pad" aria-hidden="true">
-        <button onPointerDown={(e) => { e.preventDefault(); press() }}>
-          <KeyIcon dir="up" size={30} />
-        </button>
-        <button onPointerDown={holdCrouch(true)} onPointerUp={holdCrouch(false)} onPointerLeave={holdCrouch(false)}>
-          <KeyIcon dir="down" size={30} />
-        </button>
-      </div>
     </main>
   )
 }
