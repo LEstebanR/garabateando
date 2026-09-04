@@ -227,6 +227,42 @@ body {
   color: var(--paper);
 }
 
+/* Recordatorio de qué mitad hace qué. Aparece sobre la animación del lápiz y
+   se desvanece solo: la pantalla vuelve a quedarse limpia enseguida. */
+.touch-hints {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  display: flex;
+  pointer-events: none;
+  color: var(--ink);
+  animation: hintLife 2.6s ease-in-out forwards;
+}
+
+.touch-half {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+.touch-half svg { max-width: 46%; }
+
+.touch-split {
+  width: 0;
+  border-left: 1px dashed rgba(120, 114, 104, .5);
+  margin: 12% 0;
+}
+
+@keyframes hintLife {
+  0% { opacity: 0; }
+  14% { opacity: .72; }
+  70% { opacity: .72; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .touch-hints { animation: none; opacity: .72; }
+}
+
 /* Mitades táctiles. En escritorio no existen: ahí manda el teclado. */
 .zones {
   position: absolute;

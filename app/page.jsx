@@ -9,6 +9,7 @@ import { createAudio } from './sound'
 
 const BEST_KEY = 'salta-paginas:best'
 const UNLOCKED_KEY = 'salta-paginas:unlocked'
+const PLAYS_KEY = 'salta-paginas:plays'
 const START_KEY = 'salta-paginas:start'
 
 // Temblor del trazo al redibujarse en cada hoja.
@@ -22,6 +23,12 @@ const BOIL = 0.3
 // Hojas que siguen cayendo tras la caida final. Las justas para ver el golpe;
 // despues el cuaderno se queda quieto.
 const DEATH_TICKS = 6
+
+// Veces que se enseña de qué lado va cada cosa antes de dar por sabido que se
+// sabe. Se enseña sobre la animación del lápiz, que es tiempo muerto: no tapa
+// nada jugable y desaparece justo cuando el mundo está listo.
+const HINT_PLAYS = 3
+const HINT_MS = 2600
 
 // Cuaderno en reposo: el corredor trota en el sitio, sin mundo que avance y
 // sin la ceremonia de dibujar el nivel, que es cosa de la partida.
@@ -42,6 +49,7 @@ export default function Home() {
   const [upright, setUpright] = useState(false)
   const [sfxOff, setSfxOff] = useState(false)
   const [musicOff, setMusicOff] = useState(false)
+  const [showHints, setShowHints] = useState(false)
   const [startWorld, setStartWorld] = useState(1)
   const startWorldRef = useRef(1)
 
@@ -62,6 +70,8 @@ export default function Home() {
   const boilRef = useRef(BOIL)
   const uprightRef = useRef(false)
   const fullscreenTried = useRef(false)
+  const playsRef = useRef(0)
+  const hintTimer = useRef(0)
   const audioRef = useRef(null)
   const beforeRef = useRef({ jumps: 0, onGround: true, dead: false, crouching: false, stage: 'draw' })
 
@@ -105,6 +115,18 @@ export default function Home() {
     gameRef.current = createGame(undefined, startWorldRef.current)
     inputRef.current = { jump: false, crouch: false }
     setPhaseBoth('playing')
+
+    // Las primeras partidas se recuerda de qué lado va cada cosa.
+    const plays = playsRef.current + 1
+    playsRef.current = plays
+    try {
+      window.localStorage.setItem(PLAYS_KEY, String(plays))
+    } catch {}
+    if (plays <= HINT_PLAYS && window.matchMedia?.('(pointer: coarse)').matches) {
+      setShowHints(true)
+      window.clearTimeout(hintTimer.current)
+      hintTimer.current = window.setTimeout(() => setShowHints(false), HINT_MS)
+    }
   }, [setPhaseBoth, goFullscreen])
 
   const chooseWorld = useCallback((world) => {
@@ -140,6 +162,7 @@ export default function Home() {
     try {
       if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) boilRef.current = 0
       setBest(Number(window.localStorage.getItem(BEST_KEY)) || 0)
+      playsRef.current = Number(window.localStorage.getItem(PLAYS_KEY)) || 0
       const open = Math.max(1, Number(window.localStorage.getItem(UNLOCKED_KEY)) || 1)
       const start = Math.min(open, Math.max(1, Number(window.localStorage.getItem(START_KEY)) || 1))
       setUnlocked(open)
@@ -305,6 +328,7 @@ export default function Home() {
     return () => {
       cancelAnimationFrame(raf)
       observer.disconnect()
+      window.clearTimeout(hintTimer.current)
     }
   }, [nudgeThumb, setPhaseBoth])
 
@@ -446,6 +470,20 @@ export default function Home() {
           </div>
 
         </div>
+
+        {/* De qué lado va cada cosa, encima de las mitades de verdad. Se va
+            solo, porque a la tercera partida ya estorba. */}
+        {showHints && (
+          <div className="touch-hints" aria-hidden="true">
+            <div className="touch-half">
+              <DuckHint width={132} />
+            </div>
+            <div className="touch-split" />
+            <div className="touch-half">
+              <JumpHint width={132} />
+            </div>
+          </div>
+        )}
 
         {/* Los menús viven fuera del área de juego, que recorta lo que se sale.
             La capa no captura toques: solo sus botones lo hacen, así que tocar
